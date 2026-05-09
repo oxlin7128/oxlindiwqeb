@@ -1,0 +1,1035 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=yes"
+    />
+    <title>数字人评语评分 · 音频对齐版</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: #f4f7fc;
+        font-family: "Segoe UI", "PingFang SC", Roboto, system-ui, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+      .app-container {
+        width: 100%;
+        max-width: 1400px;
+        height: 92vh;
+        min-height: 750px;
+        background: white;
+        border-radius: 28px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+        padding: 12px 24px 0 24px;
+        background: #ffffff;
+        border-bottom: 1px solid #edf2f7;
+      }
+      .tab {
+        padding: 10px 24px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        border: none;
+        background: transparent;
+        color: #5a6d80;
+        border-radius: 12px 12px 0 0;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .tab.active {
+        background: #f4f7fc;
+        color: #1e293b;
+        border-bottom: 2px solid #3b82f6;
+      }
+      .main-content {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+        padding: 16px 20px 20px 20px;
+      }
+      .page {
+        display: none;
+        width: 100%;
+        gap: 20px;
+      }
+      .page.active-page {
+        display: flex;
+      }
+      .eval-layout {
+        display: flex;
+        width: 100%;
+        gap: 24px;
+        height: 100%;
+      }
+      .left-panel {
+        width: 38%;
+        background: #f9fafc;
+        border-radius: 20px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid #e9eef3;
+      }
+      .right-panel {
+        flex: 1;
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        border: 1px solid #e9eef3;
+        overflow-y: auto;
+      }
+      /* 左侧原图 */
+      .current-image-section {
+        flex: 1;
+        background: #ffffff;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+        margin-bottom: 12px;
+        min-height: 0;
+      }
+      .current-image-section img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+      }
+      .thumbnail-list {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        overflow-x: auto;
+        padding: 4px 0;
+        max-height: 80px;
+        margin-bottom: 12px;
+      }
+      .thumbnail-item {
+        width: 60px;
+        height: 60px;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 2px solid #e2e8f0;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: border-color 0.2s;
+      }
+      .thumbnail-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .thumbnail-item.active {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+      }
+      .thumbnail-item .remove-btn {
+        display: none;
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        background: #ef4444;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        font-size: 14px;
+        line-height: 18px;
+        text-align: center;
+        cursor: pointer;
+      }
+      .thumbnail-item:hover .remove-btn {
+        display: block;
+      }
+      .left-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .upload-area-hint {
+        font-size: 0.8rem;
+        color: #64748b;
+        text-align: center;
+      }
+      .btn-group {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+      }
+      .btn {
+        padding: 10px 20px;
+        border-radius: 12px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .btn-primary {
+        background: #1e293b;
+        color: white;
+      }
+      .btn-primary:disabled {
+        opacity: 0.5;
+        pointer-events: none;
+      }
+      .btn-outline {
+        background: white;
+        border: 1px solid #cbd5e1;
+        color: #334155;
+      }
+      .status-text {
+        font-size: 0.8rem;
+        color: #64748b;
+        text-align: center;
+        margin-top: 4px;
+      }
+
+      /* 右侧上部：数字人+音频 与 评语 并排，高度一致 */
+      .top-section {
+        display: flex;
+        gap: 16px;
+        height: 42%;
+        min-height: 200px;
+      }
+      .avatar-audio-column {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .avatar-display {
+        flex: 1;
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 12px;
+        border: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 0;
+      }
+      .avatar-display img {
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: 12px;
+        object-fit: contain;
+      }
+      .audio-section {
+        background: #f1f5f9;
+        border-radius: 10px;
+        padding: 8px 12px;
+      }
+      .audio-section audio {
+        width: 100%;
+      }
+      .comment-panel {
+        flex: 1;
+        background: #f9fafc;
+        border-radius: 12px;
+        padding: 12px;
+        border: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .comment-panel .comment-text {
+        background: white;
+        border-radius: 8px;
+        padding: 10px;
+        flex: 1;
+        font-size: 1.5rem;
+        line-height: 1.5;
+        color: #334155;
+        border: 1px solid #e2e8f0;
+        overflow-y: auto;
+      }
+
+      /* 星级表格 */
+      .stars-section {
+        flex: 1;
+        background: #f9fafc;
+        border-radius: 12px;
+        padding: 12px;
+        border: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-height: 0;
+      }
+      .overall-stars {
+        text-align: center;
+        font-size: 1.6rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 4px;
+      }
+      .overall-stars span {
+        color: #f59e0b;
+        letter-spacing: 2px;
+      }
+      .stars-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+      }
+      .stars-table th,
+      .stars-table td {
+        padding: 10px 12px;
+        font-size: 0.85rem;
+        color: #334155;
+        text-align: left;
+      }
+      .stars-table th {
+        background: #f1f5f9;
+        font-weight: 600;
+        border-bottom: 2px solid #e2e8f0;
+      }
+      .stars-table td {
+        border-bottom: 1px solid #f1f5f9;
+      }
+      .stars-table tr:last-child td {
+        border-bottom: none;
+      }
+      .stars-table .star-chars {
+        color: #f59e0b;
+        font-size: 1.1rem;
+        letter-spacing: 2px;
+        font-weight: 500;
+      }
+      .stars-table .reason {
+        color: #475569;
+      }
+
+      /* 调试按钮 */
+      .debug-section {
+        margin-top: 8px;
+      }
+      .debug-toggle {
+        background: none;
+        border: none;
+        color: #3b82f6;
+        cursor: pointer;
+        font-size: 0.85rem;
+        text-decoration: underline;
+      }
+      .debug-box {
+        background: #1e293b;
+        color: #e2e8f0;
+        border-radius: 12px;
+        padding: 12px;
+        font-family: monospace;
+        font-size: 0.8rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 150px;
+        overflow-y: auto;
+        border: 1px solid #334155;
+        display: none;
+        margin-top: 4px;
+      }
+
+      /* 配置页 */
+      .config-page {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .config-section {
+        background: #f9fafc;
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid #e2e8f0;
+      }
+      .input-group {
+        margin-bottom: 14px;
+      }
+      .input-group label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 6px;
+      }
+      .input-group input {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+      }
+      .avatar-upload {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-top: 8px;
+      }
+      .avatar-preview {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        object-fit: cover;
+        border: 2px solid #cbd5e1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="tabs">
+        <button class="tab active" id="tabEval">📊 作品评估</button>
+        <button class="tab" id="tabConfig">⚙️ 配置与形象</button>
+      </div>
+      <div class="main-content">
+        <!-- 评估页 -->
+        <div id="evalPage" class="page active-page">
+          <div class="eval-layout">
+            <div class="left-panel" id="leftPanel">
+              <div class="current-image-section" id="currentImageSection">
+                <span style="color: #94a3b8">作品原图</span>
+              </div>
+              <div class="thumbnail-list" id="thumbnailList">
+                <span style="color: #94a3b8; font-size: 0.8rem">暂无图片</span>
+              </div>
+              <div class="left-actions">
+                <div class="upload-area-hint">
+                  拖拽图片到本区域或点击下方按钮上传（可多选）
+                </div>
+                <div class="btn-group">
+                  <button class="btn btn-outline" id="uploadBtn">
+                    📁 上传图片
+                  </button>
+                  <button class="btn btn-outline" id="clearBtn">清除</button>
+                  <button class="btn btn-primary" id="submitBtn" disabled>
+                    ✨ 开始评估
+                  </button>
+                </div>
+                <div class="status-text" id="uploadStatus"></div>
+              </div>
+              <input
+                type="file"
+                id="fileInput"
+                accept="image/*"
+                multiple
+                hidden
+              />
+            </div>
+            <div class="right-panel">
+              <!-- 数字人+音频 与 评语 并排 -->
+              <div class="top-section">
+                <div class="avatar-audio-column">
+                  <div class="avatar-display" id="avatarDisplay">
+                    <span style="color: #94a3b8">数字人形象</span>
+                  </div>
+                  <div
+                    class="audio-section"
+                    id="audioContainer"
+                    style="display: none"
+                  >
+                    <audio id="resultAudio" controls></audio>
+                  </div>
+                </div>
+                <div class="comment-panel">
+                  <div
+                    style="font-weight: 600; font-size: 0.9rem; color: #1e293b"
+                  >
+                    📝 AI 评语
+                  </div>
+                  <div class="comment-text" id="commentDisplay">等待评估</div>
+                </div>
+              </div>
+              <!-- 星级评分明细 -->
+              <div class="stars-section">
+                <div class="overall-stars" id="overallStars"></div>
+                <div style="overflow-y: auto; flex: 1">
+                  <table class="stars-table">
+                    <thead>
+                      <tr>
+                        <th>评分维度</th>
+                        <th>星级</th>
+                        <th>详细原因</th>
+                      </tr>
+                    </thead>
+                    <tbody id="starsTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <!-- 调试面板 -->
+              <div class="debug-section">
+                <button class="debug-toggle" id="debugToggle">
+                  📋 显示调试信息
+                </button>
+                <div class="debug-box" id="debugBox"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 配置页 -->
+        <div id="configPage" class="page" style="display: none">
+          <div class="config-page">
+            <div class="config-section">
+              <h3>🔗 Coze 工作流 API 参数</h3>
+              <div class="input-group">
+                <label>API 基础地址</label>
+                <input
+                  type="text"
+                  id="apiBaseUrl"
+                  value="https://api.coze.cn/v1"
+                />
+              </div>
+              <div class="input-group">
+                <label>工作流 ID</label>
+                <input
+                  type="text"
+                  id="workflowId"
+                  placeholder="输入你的工作流ID"
+                />
+              </div>
+              <div class="input-group">
+                <label>个人访问令牌 (PAT)</label>
+                <input
+                  type="password"
+                  id="apiToken"
+                  placeholder="pat_xxxxxxxxxxxxx"
+                />
+              </div>
+            </div>
+            <div class="config-section">
+              <h3>👤 数字人形象（必选）</h3>
+              <div class="avatar-upload">
+                <img
+                  id="avatarPreview"
+                  class="avatar-preview"
+                  src="#"
+                  style="display: none"
+                />
+                <div
+                  id="avatarPlaceholder"
+                  class="avatar-preview"
+                  style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #94a3b8;
+                  "
+                >
+                  无
+                </div>
+                <button class="btn btn-outline" id="uploadAvatarBtn">
+                  上传形象
+                </button>
+                <button
+                  class="btn btn-outline"
+                  id="clearAvatarBtn"
+                  style="display: none"
+                >
+                  清除
+                </button>
+                <input
+                  type="file"
+                  id="avatarFileInput"
+                  accept="image/*"
+                  hidden
+                />
+              </div>
+            </div>
+            <button class="btn btn-primary" id="saveConfigBtn">
+              💾 保存配置
+            </button>
+            <div
+              id="configStatus"
+              style="font-size: 0.9rem; margin-top: 8px"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        const tabEval = document.getElementById("tabEval");
+        const tabConfig = document.getElementById("tabConfig");
+        const evalPage = document.getElementById("evalPage");
+        const configPage = document.getElementById("configPage");
+        const leftPanel = document.getElementById("leftPanel");
+        const fileInput = document.getElementById("fileInput");
+        const uploadBtn = document.getElementById("uploadBtn");
+        const thumbnailList = document.getElementById("thumbnailList");
+        const clearBtn = document.getElementById("clearBtn");
+        const submitBtn = document.getElementById("submitBtn");
+        const uploadStatus = document.getElementById("uploadStatus");
+        const currentImageSection = document.getElementById(
+          "currentImageSection",
+        );
+        const avatarDisplay = document.getElementById("avatarDisplay");
+        const commentDisplay = document.getElementById("commentDisplay");
+        const starsTableBody = document.getElementById("starsTableBody");
+        const overallStars = document.getElementById("overallStars");
+        const resultAudio = document.getElementById("resultAudio");
+        const audioContainer = document.getElementById("audioContainer");
+        const debugToggle = document.getElementById("debugToggle");
+        const debugBox = document.getElementById("debugBox");
+        const apiBaseUrlInput = document.getElementById("apiBaseUrl");
+        const workflowIdInput = document.getElementById("workflowId");
+        const apiTokenInput = document.getElementById("apiToken");
+        const avatarPreview = document.getElementById("avatarPreview");
+        const avatarPlaceholder = document.getElementById("avatarPlaceholder");
+        const uploadAvatarBtn = document.getElementById("uploadAvatarBtn");
+        const clearAvatarBtn = document.getElementById("clearAvatarBtn");
+        const avatarFileInput = document.getElementById("avatarFileInput");
+        const saveConfigBtn = document.getElementById("saveConfigBtn");
+        const configStatus = document.getElementById("configStatus");
+
+        let imageFiles = [];
+        let imageBase64Cache = [];
+        let evaluationResults = [];
+        let selectedIndex = 0;
+        let avatarImageFile = null;
+        let avatarBase64 = null;
+
+        tabEval.onclick = () => {
+          tabEval.classList.add("active");
+          tabConfig.classList.remove("active");
+          evalPage.classList.add("active-page");
+          configPage.classList.remove("active-page");
+          configPage.style.display = "none";
+        };
+        tabConfig.onclick = () => {
+          tabConfig.classList.add("active");
+          tabEval.classList.remove("active");
+          configPage.classList.add("active-page");
+          evalPage.classList.remove("active-page");
+          configPage.style.display = "flex";
+        };
+
+        function loadConfig() {
+          const cfg = JSON.parse(localStorage.getItem("coze_audio_v3") || "{}");
+          if (cfg.apiBaseUrl) apiBaseUrlInput.value = cfg.apiBaseUrl;
+          if (cfg.workflowId) workflowIdInput.value = cfg.workflowId;
+          if (cfg.apiToken) apiTokenInput.value = cfg.apiToken;
+          if (cfg.avatarBase64) {
+            avatarBase64 = cfg.avatarBase64;
+            avatarPreview.src = avatarBase64;
+            avatarPreview.style.display = "block";
+            avatarPlaceholder.style.display = "none";
+            clearAvatarBtn.style.display = "inline-flex";
+            avatarDisplay.innerHTML = `<img src="${avatarBase64}" alt="数字人形象">`;
+          } else {
+            avatarDisplay.innerHTML =
+              '<span style="color:#94a3b8;">请先上传数字人形象</span>';
+          }
+        }
+        loadConfig();
+
+        saveConfigBtn.onclick = () => {
+          const config = {
+            apiBaseUrl: apiBaseUrlInput.value.trim(),
+            workflowId: workflowIdInput.value.trim(),
+            apiToken: apiTokenInput.value.trim(),
+            avatarBase64: avatarBase64,
+          };
+          localStorage.setItem("coze_audio_v3", JSON.stringify(config));
+          configStatus.innerHTML =
+            '<span style="color:#15803d;">✅ 配置已保存</span>';
+          setTimeout(() => (configStatus.innerHTML = ""), 2000);
+          if (avatarBase64) {
+            avatarDisplay.innerHTML = `<img src="${avatarBase64}" alt="数字人形象">`;
+          }
+        };
+
+        debugToggle.onclick = () => {
+          debugBox.style.display =
+            debugBox.style.display === "block" ? "none" : "block";
+          debugToggle.textContent =
+            debugBox.style.display === "block"
+              ? "📋 隐藏调试信息"
+              : "📋 显示调试信息";
+        };
+
+        uploadAvatarBtn.onclick = () => avatarFileInput.click();
+        avatarFileInput.onchange = (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          avatarImageFile = file;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            avatarBase64 = ev.target.result;
+            avatarPreview.src = avatarBase64;
+            avatarPreview.style.display = "block";
+            avatarPlaceholder.style.display = "none";
+            clearAvatarBtn.style.display = "inline-flex";
+            avatarDisplay.innerHTML = `<img src="${avatarBase64}" alt="数字人形象">`;
+          };
+          reader.readAsDataURL(file);
+        };
+        clearAvatarBtn.onclick = () => {
+          avatarImageFile = null;
+          avatarBase64 = null;
+          avatarPreview.style.display = "none";
+          avatarPlaceholder.style.display = "flex";
+          clearAvatarBtn.style.display = "none";
+          avatarFileInput.value = "";
+          avatarDisplay.innerHTML =
+            '<span style="color:#94a3b8;">请先上传数字人形象</span>';
+        };
+
+        function renderThumbnails() {
+          thumbnailList.innerHTML = "";
+          if (imageFiles.length === 0) {
+            thumbnailList.innerHTML =
+              '<span style="color:#94a3b8; font-size:0.8rem;">暂无图片</span>';
+            submitBtn.disabled = true;
+            selectedIndex = 0;
+            return;
+          }
+          if (selectedIndex >= imageFiles.length)
+            selectedIndex = imageFiles.length - 1;
+          imageFiles.forEach((file, idx) => {
+            if (!imageBase64Cache[idx]) {
+              const reader = new FileReader();
+              reader.onload = (ev) => {
+                imageBase64Cache[idx] = ev.target.result;
+                addItem(idx);
+              };
+              reader.readAsDataURL(file);
+            } else {
+              addItem(idx);
+            }
+            function addItem(index) {
+              if (thumbnailList.querySelector(`[data-index="${index}"]`))
+                return;
+              const div = document.createElement("div");
+              div.className = `thumbnail-item ${index === selectedIndex ? "active" : ""}`;
+              div.setAttribute("data-index", index);
+              div.innerHTML = `<img src="${imageBase64Cache[index]}"><span class="remove-btn">×</span>`;
+              div.addEventListener("click", (e) => {
+                if (e.target.classList.contains("remove-btn")) return;
+                selectedIndex = index;
+                updateSelectionAndDisplay();
+                renderThumbnails();
+              });
+              div
+                .querySelector(".remove-btn")
+                .addEventListener("click", (e) => {
+                  e.stopPropagation();
+                  imageFiles.splice(index, 1);
+                  imageBase64Cache.splice(index, 1);
+                  evaluationResults.splice(index, 1);
+                  if (selectedIndex >= imageFiles.length)
+                    selectedIndex = Math.max(0, imageFiles.length - 1);
+                  renderThumbnails();
+                  updateSelectionAndDisplay();
+                });
+              thumbnailList.appendChild(div);
+            }
+          });
+          submitBtn.disabled = false;
+        }
+
+        function updateSelectionAndDisplay() {
+          document.querySelectorAll(".thumbnail-item").forEach((item) => {
+            const idx = parseInt(item.getAttribute("data-index"));
+            item.classList.toggle("active", idx === selectedIndex);
+          });
+          if (imageBase64Cache[selectedIndex]) {
+            currentImageSection.innerHTML = `<img src="${imageBase64Cache[selectedIndex]}" alt="作品原图">`;
+          } else {
+            currentImageSection.innerHTML =
+              '<span style="color:#94a3b8;">暂无原图</span>';
+          }
+          const result = evaluationResults[selectedIndex];
+          if (result) {
+            renderStarsDetail(
+              result.dimensions || {},
+              result.overallStars || "",
+            );
+            commentDisplay.textContent = result.comment || "暂无评语";
+            if (result.audioUrl) {
+              resultAudio.src = result.audioUrl;
+              audioContainer.style.display = "block";
+            } else {
+              audioContainer.style.display = "none";
+            }
+          } else {
+            starsTableBody.innerHTML = "";
+            overallStars.innerHTML = "";
+            commentDisplay.textContent = "等待评估";
+            audioContainer.style.display = "none";
+          }
+        }
+
+        uploadBtn.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => {
+          const files = Array.from(e.target.files).filter((f) =>
+            f.type.startsWith("image/"),
+          );
+          if (files.length === 0) return;
+          imageFiles = [...imageFiles, ...files];
+          files.forEach((_, i) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              imageBase64Cache[imageFiles.length - files.length + i] =
+                ev.target.result;
+              renderThumbnails();
+            };
+            reader.readAsDataURL(files[i]);
+          });
+          renderThumbnails();
+          fileInput.value = "";
+        };
+
+        leftPanel.addEventListener("dragover", (e) => e.preventDefault());
+        leftPanel.addEventListener("drop", (e) => {
+          e.preventDefault();
+          const files = Array.from(e.dataTransfer.files).filter((f) =>
+            f.type.startsWith("image/"),
+          );
+          if (files.length === 0) return;
+          imageFiles = [...imageFiles, ...files];
+          files.forEach((_, i) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              imageBase64Cache[imageFiles.length - files.length + i] =
+                ev.target.result;
+              renderThumbnails();
+            };
+            reader.readAsDataURL(files[i]);
+          });
+          renderThumbnails();
+        });
+
+        clearBtn.onclick = () => {
+          imageFiles = [];
+          imageBase64Cache = [];
+          evaluationResults = [];
+          selectedIndex = 0;
+          renderThumbnails();
+          updateSelectionAndDisplay();
+          uploadStatus.textContent = "";
+          debugBox.textContent = "";
+        };
+
+        async function uploadFileToCoze(file, token, baseUrl) {
+          const fd = new FormData();
+          fd.append("file", file);
+          const res = await fetch(
+            `${baseUrl.replace(/\/$/, "")}/files/upload`,
+            {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+              body: fd,
+            },
+          );
+          if (!res.ok) throw new Error(`上传失败 (HTTP ${res.status})`);
+          const data = await res.json();
+          if (data.code !== 0) throw new Error(data.msg);
+          return data.data.id;
+        }
+
+        function parseTable(input) {
+          let text = Array.isArray(input) ? input[0] || "" : input || "";
+          if (typeof text !== "string") text = String(text);
+          const lines = text.split("\n");
+          const rows = [];
+          for (let line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
+              const cells = trimmed
+                .split("|")
+                .map((c) => c.trim())
+                .filter((c) => c !== "");
+              if (cells.length >= 2 && !cells.every((c) => c.includes("---"))) {
+                rows.push(cells);
+              }
+            }
+          }
+
+          const dimensions = {};
+          let overallStars = "";
+          let comment = "";
+
+          for (let row of rows) {
+            const label = row[0]; // 第一列：评分维度 / 综合评分 / 详细评语
+            const stars = row[1] || ""; // 第二列：星级 或 评语内容
+            const reason = row[2] || ""; // 第三列：评分原因 或 评语内容
+
+            // 匹配综合评分
+            if (label.includes("综合评分")) {
+              overallStars = stars;
+            }
+            // 匹配评语（兼容“评语”、“详细评语”等）
+            else if (label.includes("评语")) {
+              // 如果第二列是 "/" 或空，则取第三列作为评语
+              if (stars === "/" || stars === "") {
+                comment = reason || "暂无详细评语";
+              } else {
+                comment = stars === "/" ? "暂无详细评语" : stars;
+              }
+            }
+            // 普通维度行
+            else if (
+              !label.includes("维度") &&
+              !label.includes("说明") &&
+              !label.includes("星级")
+            ) {
+              if (stars && (stars.includes("★") || stars.includes("☆"))) {
+                dimensions[label] = { stars, reason };
+              }
+            }
+          }
+
+          return { dimensions, overallStars, comment };
+        }
+
+        function renderStarsDetail(dimensions, overallStarsStr) {
+          starsTableBody.innerHTML = "";
+          for (const [dim, data] of Object.entries(dimensions)) {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td>${dim}</td><td class="star-chars">${data.stars}</td><td class="reason">${data.reason || ""}</td>`;
+            starsTableBody.appendChild(tr);
+          }
+          overallStars.innerHTML = overallStarsStr
+            ? `综合评分：<span>${overallStarsStr}</span>`
+            : "";
+        }
+
+        submitBtn.onclick = async () => {
+          if (imageFiles.length === 0) {
+            alert("请先上传作品图片");
+            return;
+          }
+          if (!avatarBase64) {
+            alert("请先上传数字人形象");
+            return;
+          }
+          const config = JSON.parse(
+            localStorage.getItem("coze_audio_v3") || "{}",
+          );
+          if (!config.workflowId || !config.apiToken) {
+            alert("请先配置工作流ID和令牌");
+            return;
+          }
+
+          starsTableBody.innerHTML = "";
+          overallStars.innerHTML = "";
+          commentDisplay.textContent = "准备中...";
+          audioContainer.style.display = "none";
+          submitBtn.disabled = true;
+          uploadStatus.textContent = "⏳ 评估中...";
+          debugBox.textContent = "开始评估...\n";
+
+          try {
+            const baseUrl = config.apiBaseUrl,
+              token = config.apiToken;
+            const fileIds = [];
+            for (let i = 0; i < imageFiles.length; i++) {
+              fileIds.push(
+                await uploadFileToCoze(imageFiles[i], token, baseUrl),
+              );
+            }
+            let avatarId = null;
+            if (avatarImageFile) {
+              avatarId = await uploadFileToCoze(
+                avatarImageFile,
+                token,
+                baseUrl,
+              );
+            } else if (avatarBase64) {
+              const blob = await (await fetch(avatarBase64)).blob();
+              avatarId = await uploadFileToCoze(
+                new File([blob], "avatar.png", { type: blob.type }),
+                token,
+                baseUrl,
+              );
+            }
+            const params = {
+              input: JSON.stringify(fileIds.map((id) => ({ file_id: id }))),
+            };
+            if (avatarId) params.image = JSON.stringify({ file_id: avatarId });
+            const body = `{"workflow_id":"${config.workflowId}","parameters":{${Object.entries(
+              params,
+            )
+              .map(([k, v]) => `"${k}":${v}`)
+              .join(",")}}}`;
+            debugBox.textContent += `请求体: ${body}\n`;
+
+            const resp = await fetch(
+              `${baseUrl.replace(/\/$/, "")}/workflow/run`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body,
+              },
+            );
+            const text = await resp.text();
+            debugBox.textContent += `\n响应: ${text}\n`;
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${text}`);
+
+            const json = JSON.parse(text);
+            let out = json.data;
+            if (typeof out === "string") out = JSON.parse(out);
+            const audios = Array.isArray(out?.output)
+              ? out.output
+              : [out?.output];
+            const tables = Array.isArray(out?.output1)
+              ? out.output1
+              : [out?.output1];
+
+            evaluationResults = [];
+            for (let i = 0; i < imageFiles.length; i++) {
+              const audioUrl = audios[i] || null;
+              const t = tables[i] || tables[0] || "";
+              const parsed = parseTable(t);
+              evaluationResults.push({
+                audioUrl,
+                dimensions: parsed.dimensions,
+                overallStars: parsed.overallStars,
+                comment: parsed.comment,
+              });
+            }
+            debugBox.textContent += `\n解析完成，共 ${evaluationResults.length} 条结果`;
+            selectedIndex = 0;
+            updateSelectionAndDisplay();
+            renderThumbnails();
+            uploadStatus.textContent = "✅ 评估完成";
+          } catch (e) {
+            debugBox.textContent += `\n❌ ${e.message}`;
+            commentDisplay.textContent = `失败: ${e.message}`;
+            uploadStatus.textContent = "❌ 失败";
+          } finally {
+            submitBtn.disabled = false;
+          }
+        };
+      })();
+    </script>
+  </body>
+</html>
